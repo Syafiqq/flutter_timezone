@@ -55,6 +55,22 @@ class TZDateTime implements DateTime {
         isUtc: true);
   }
 
+  static DateTime _toUtcWithTimezoneDifference(
+      DateTime other,
+      Location location,
+  ) {
+    final nativeTime = _toNative(other);
+    final originalOffset = other
+        .timeZoneOffset //
+        .inMilliseconds;
+    final locationOffset = location
+        .timeZone(other.millisecondsSinceEpoch) //
+        .offset;
+    return nativeTime //
+        .add(Duration(milliseconds: originalOffset - locationOffset))
+        .toUtc();
+  }
+
   /// Native [DateTime] used as a Calendar object.
   ///
   /// Represents the same date and time as this [TZDateTime], but in the UTC
@@ -224,6 +240,22 @@ class TZDateTime implements DateTime {
                 ? TimeZone.UTC
                 : location.timeZone(other.millisecondsSinceEpoch));
 
+  /// Constructs a new [TZDateTime] instance from the given [DateTime]
+  /// act as target location [location].
+  ///
+  /// ```dart
+  /// final date = Date(1970-01-02 07:30:30)
+  /// final location = Location('sg')
+  /// final sgTime = TZDateTime.as(date, location); // 1970-01-02 07:30:30 +07:30
+  /// ```
+  TZDateTime.as(DateTime other, Location location)
+      : this._(
+      _toUtcWithTimezoneDifference(other, location),
+      location,
+      _isUtc(location)
+          ? TimeZone.UTC
+          : location.timeZone(other.millisecondsSinceEpoch));
+
   TZDateTime._(DateTime native, this.location, this.timeZone)
       : _native = native,
         _localDateTime =
@@ -252,6 +284,31 @@ class TZDateTime implements DateTime {
   /// * `"2002-02-27T14:00:00-0500"`: Same as `"2002-02-27T19:00:00Z"`
   static TZDateTime parse(Location location, String formattedString) {
     return TZDateTime.from(DateTime.parse(formattedString), location);
+  }
+
+  /// Like parse function but act as location
+  ///
+  /// Throws a [FormatException] if the input cannot be parsed.
+  ///
+  /// The function parses a subset of ISO 8601
+  /// which includes the subset accepted by RFC 3339.
+  ///
+  /// The result is always in the time zone of the provided location.
+  ///
+  /// Examples of accepted strings:
+  ///
+  /// * `"2012-02-27 13:27:00"`
+  /// * `"2012-02-27 13:27:00.123456z"`
+  /// * `"20120227 13:27:00"`
+  /// * `"20120227T132700"`
+  /// * `"20120227"`
+  /// * `"+20120227"`
+  /// * `"2012-02-27T14Z"`
+  /// * `"2012-02-27T14+00:00"`
+  /// * `"-123450101 00:00:00 Z"`: in the year -12345.
+  /// * `"2002-02-27T14:00:00-0500"`: Same as `"2002-02-27T19:00:00Z"`
+  static TZDateTime parseAs(Location location, String formattedString) {
+    return TZDateTime.as(DateTime.parse(formattedString), location);
   }
 
   /// Returns this DateTime value in the UTC time zone.
