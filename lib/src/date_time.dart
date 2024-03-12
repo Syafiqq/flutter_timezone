@@ -323,6 +323,11 @@ class TZDateTime implements DateTime {
   @override
   TZDateTime toLocal() => isLocal ? this : TZDateTime.from(_native, local);
 
+  DateTime toUtcDateTime() => DateTime.fromMillisecondsSinceEpoch(
+      toUtc().millisecondsSinceEpoch,
+      isUtc: true
+  );
+
   static String _fourDigits(int n) {
     var absN = n.abs();
     var sign = n < 0 ? "-" : "";
