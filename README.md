@@ -3,7 +3,7 @@
 This package provides the [IANA time zone database] and time zone aware
 `DateTime` class, [`TZDateTime`].
 
-The current time zone database version is [2023c]. See [the announcement] for
+The current time zone database version is [2024a]. See [the announcement] for
 details.
 
 You can update to the current IANA time zone database by running
@@ -174,7 +174,7 @@ To convert between time zones, just create a new `TZDateTime` object using
 
 ```dart
 var localTime = tz.DateTime(2010, 1, 1);
-var detroitTime = tz.TZDateTime.from(time, detroit);
+var detroitTime = tz.TZDateTime.from(localTime, detroit);
 ```
 
 This constructor supports any objects that implement `DateTime` interface, so
@@ -225,9 +225,9 @@ Note, on Windows, you may need to follow [these
 steps](https://github.com/srawlins/timezone/issues/60#issuecomment-638411716)
 which use WSL.
 
-[2023c]: https://data.iana.org/time-zones/releases/tzcode2023c.tar.gz
+[2024a]: https://data.iana.org/time-zones/releases/tzdb-2024a.tar.lz
 [IANA time zone database]: https://www.iana.org/time-zones
 [Wikipedia list]: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 [`TZDateTime`]: https://pub.dartlang.org/documentation/timezone/latest/timezone.standalone/TZDateTime-class.html
 [`TimeZone`]: https://pub.dartlang.org/documentation/timezone/latest/timezone.standalone/TimeZone-class.html
-[the announcement]: http://mm.icann.org/pipermail/tz-announce/2023-March/000079.html
+[the announcement]: https://mm.icann.org/pipermail/tz/2024-February.txt
