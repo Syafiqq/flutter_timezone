@@ -1,10 +1,11 @@
 name: timezone
-version: 0.9.4-beta.1
+version: 0.10.0
 description: Time zone database and time zone aware DateTime.
 repository: https://github.com/srawlins/timezone
 environment:
   sdk: '>=2.19.0 <3.0.0'
 dependencies:
+  http: ^1.2.1
   path: ^1.8.0
 dev_dependencies:
   args: any
