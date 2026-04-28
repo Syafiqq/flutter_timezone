@@ -2,8 +2,8 @@
 // file for details. All rights reserved. Use of this source code is governed
 // by a BSD-style license that can be found in the LICENSE file.
 
-import 'package:timezone/src/env.dart';
-import 'package:timezone/src/location.dart';
+import 'env.dart';
+import 'location.dart';
 
 /// TimeZone aware DateTime.
 class TZDateTime implements DateTime {
@@ -14,7 +14,7 @@ class TZDateTime implements DateTime {
   static const int minMillisecondsSinceEpoch = -maxMillisecondsSinceEpoch;
 
   /// Returns the native [DateTime] object.
-  static DateTime _toNative(DateTime t) => t is TZDateTime ? t._native : t;
+  static DateTime _toNative(DateTime t) => t is TZDateTime ? t.native : t;
 
   /// Converts a [_localDateTime] into a correct [DateTime].
   static DateTime _utcFromLocalDateTime(DateTime local, Location location) {
@@ -22,12 +22,12 @@ class TZDateTime implements DateTime {
     // Get the offset at local (first estimate).
     final localInstant = local.millisecondsSinceEpoch;
     final localTimezone = location.lookupTimeZone(localInstant);
-    final localOffset = localTimezone.timeZone.offset;
+    final localOffset = localTimezone.timeZone.offset.inMilliseconds;
 
     // Adjust localInstant using the estimate and recalculate the offset.
     final adjustedInstant = localInstant - localOffset;
     final adjustedTimezone = location.lookupTimeZone(adjustedInstant);
-    final adjustedOffset = adjustedTimezone.timeZone.offset;
+    final adjustedOffset = adjustedTimezone.timeZone.offset.inMilliseconds;
 
     var milliseconds = localInstant - adjustedOffset;
 
@@ -42,17 +42,21 @@ class TZDateTime implements DateTime {
               location
                   .lookupTimeZone(localInstant - adjustedOffset)
                   .timeZone
-                  .offset) {
+                  .offset
+                  .inMilliseconds) {
         milliseconds = adjustedInstant;
       }
     }
 
     // Ensure original microseconds are preserved regardless of TZ shift.
-    final microsecondsSinceEpoch =
-        Duration(milliseconds: milliseconds, microseconds: local.microsecond)
-            .inMicroseconds;
-    return DateTime.fromMicrosecondsSinceEpoch(microsecondsSinceEpoch,
-        isUtc: true);
+    final microsecondsSinceEpoch = Duration(
+      milliseconds: milliseconds,
+      microseconds: local.microsecond,
+    ).inMicroseconds;
+    return DateTime.fromMicrosecondsSinceEpoch(
+      microsecondsSinceEpoch,
+      isUtc: true,
+    );
   }
 
   static DateTime _toUtcWithTimezoneDifference(
@@ -79,10 +83,10 @@ class TZDateTime implements DateTime {
   /// 2000-03-17T12:00:00Z.
   final DateTime _localDateTime;
 
-  /// Native [DateTime] used as canonical, utc representation.
+  /// Native [DateTime] used as canonical, UTC representation.
   ///
   /// Represents the same moment as this [TZDateTime].
-  final DateTime _native;
+  final DateTime native;
 
   /// The number of milliseconds since
   /// the "Unix epoch" 1970-01-01T00:00:00Z (UTC).
@@ -93,7 +97,7 @@ class TZDateTime implements DateTime {
   /// 8,640,000,000,000,000ms (100,000,000 days) from the Unix epoch.
   /// In other words: [:millisecondsSinceEpoch.abs() <= 8640000000000000:].
   @override
-  int get millisecondsSinceEpoch => _native.millisecondsSinceEpoch;
+  int get millisecondsSinceEpoch => native.millisecondsSinceEpoch;
 
   /// The number of microseconds since the "Unix epoch"
   /// 1970-01-01T00:00:00Z (UTC).
@@ -107,7 +111,7 @@ class TZDateTime implements DateTime {
   /// Note that this value does not fit into 53 bits (the size of a IEEE
   /// double).  A JavaScript number is not able to hold this value.
   @override
-  int get microsecondsSinceEpoch => _native.microsecondsSinceEpoch;
+  int get microsecondsSinceEpoch => native.microsecondsSinceEpoch;
 
   /// [Location]
   final Location location;
@@ -148,52 +152,84 @@ class TZDateTime implements DateTime {
   /// final annularEclipse = TZDateTime(location,
   ///     2014, DateTime.APRIL, 29, 6, 4);
   /// ```
-  TZDateTime(Location location, int year,
-      [int month = 1,
-      int day = 1,
-      int hour = 0,
-      int minute = 0,
-      int second = 0,
-      int millisecond = 0,
-      int microsecond = 0])
-      : this.from(
-            _utcFromLocalDateTime(
-                DateTime.utc(year, month, day, hour, minute, second,
-                    millisecond, microsecond),
-                location),
-            location);
+  TZDateTime(
+    Location location,
+    int year, [
+    int month = 1,
+    int day = 1,
+    int hour = 0,
+    int minute = 0,
+    int second = 0,
+    int millisecond = 0,
+    int microsecond = 0,
+  ]) : this.from(
+         _utcFromLocalDateTime(
+           DateTime.utc(
+             year,
+             month,
+             day,
+             hour,
+             minute,
+             second,
+             millisecond,
+             microsecond,
+           ),
+           location,
+         ),
+         location,
+       );
 
   /// Constructs a [TZDateTime] instance specified in the UTC time zone.
   ///
   /// ```dart
   /// final dDay = TZDateTime.utc(1944, TZDateTime.JUNE, 6);
   /// ```
-  TZDateTime.utc(int year,
-      [int month = 1,
-      int day = 1,
-      int hour = 0,
-      int minute = 0,
-      int second = 0,
-      int millisecond = 0,
-      int microsecond = 0])
-      : this(UTC, year, month, day, hour, minute, second, millisecond,
-            microsecond);
+  TZDateTime.utc(
+    int year, [
+    int month = 1,
+    int day = 1,
+    int hour = 0,
+    int minute = 0,
+    int second = 0,
+    int millisecond = 0,
+    int microsecond = 0,
+  ]) : this(
+         UTC,
+         year,
+         month,
+         day,
+         hour,
+         minute,
+         second,
+         millisecond,
+         microsecond,
+       );
 
   /// Constructs a [TZDateTime] instance specified in the local time zone.
   ///
   /// ```dart
-  /// final dDay = TZDateTime.utc(1944, TZDateTime.JUNE, 6);
+  /// final dDay = TZDateTime.local(1944, TZDateTime.JUNE, 6);
   /// ```
-  TZDateTime.local(int year,
-      [int month = 1,
-      int day = 1,
-      int hour = 0,
-      int minute = 0,
-      int second = 0,
-      int millisecond = 0,
-      int microsecond = 0])
-      : this(local, year, month, day, hour, minute, second, millisecond,
-            microsecond);
+  TZDateTime.local(
+    int year, [
+    int month = 1,
+    int day = 1,
+    int hour = 0,
+    int minute = 0,
+    int second = 0,
+    int millisecond = 0,
+    int microsecond = 0,
+  ]) : this(
+         local,
+         year,
+         month,
+         day,
+         hour,
+         minute,
+         second,
+         millisecond,
+         microsecond,
+       );
 
   /// Constructs a [TZDateTime] instance with current date and time in the
   /// [location] time zone.
@@ -212,18 +248,26 @@ class TZDateTime implements DateTime {
   /// 1970-01-01T00:00:00Z + [millisecondsSinceEpoch] ms in the given
   /// time zone [location].
   TZDateTime.fromMillisecondsSinceEpoch(
-      Location location, int millisecondsSinceEpoch)
-      : this.from(
-            DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch,
-                isUtc: true),
-            location);
+    Location location,
+    int millisecondsSinceEpoch,
+  ) : this.from(
+        DateTime.fromMillisecondsSinceEpoch(
+          millisecondsSinceEpoch,
+          isUtc: true,
+        ),
+        location,
+      );
 
   TZDateTime.fromMicrosecondsSinceEpoch(
-      Location location, int microsecondsSinceEpoch)
-      : this.from(
-            DateTime.fromMicrosecondsSinceEpoch(microsecondsSinceEpoch,
-                isUtc: true),
-            location);
+    Location location,
+    int microsecondsSinceEpoch,
+  ) : this.from(
+        DateTime.fromMicrosecondsSinceEpoch(
+          microsecondsSinceEpoch,
+          isUtc: true,
+        ),
+        location,
+      );
 
   /// Constructs a new [TZDateTime] instance from the given [DateTime]
   /// in the specified [location].
@@ -256,10 +300,8 @@ class TZDateTime implements DateTime {
           ? TimeZone.UTC
           : location.timeZone(other.millisecondsSinceEpoch));
 
-  TZDateTime._(DateTime native, this.location, this.timeZone)
-      : _native = native,
-        _localDateTime =
-            _isUtc(location) ? native : native.add(_timeZoneOffset(timeZone));
+  TZDateTime._(this.native, this.location, this.timeZone)
+    : _localDateTime = _isUtc(location) ? native : native.add(timeZone.offset);
 
   /// Constructs a new [TZDateTime] instance based on [formattedString].
   ///
@@ -313,15 +355,15 @@ class TZDateTime implements DateTime {
 
   /// Returns this DateTime value in the UTC time zone.
   ///
-  /// Returns [this] if it is already in UTC.
+  /// Returns `this` if it is already in UTC.
   @override
-  TZDateTime toUtc() => isUtc ? this : TZDateTime.from(_native, UTC);
+  TZDateTime toUtc() => isUtc ? this : TZDateTime.from(native, UTC);
 
   /// Returns this DateTime value in the local time zone.
   ///
-  /// Returns [this] if it is already in the local time zone.
+  /// Returns `this` if it is already in the local time zone.
   @override
-  TZDateTime toLocal() => isLocal ? this : TZDateTime.from(_native, local);
+  TZDateTime toLocal() => isLocal ? this : TZDateTime.from(native, local);
 
   DateTime toUtcDateTime() => DateTime.fromMillisecondsSinceEpoch(
       toUtc().millisecondsSinceEpoch,
@@ -329,23 +371,23 @@ class TZDateTime implements DateTime {
   );
 
   static String _fourDigits(int n) {
-    var absN = n.abs();
-    var sign = n < 0 ? "-" : "";
-    if (absN >= 1000) return "$n";
-    if (absN >= 100) return "${sign}0$absN";
-    if (absN >= 10) return "${sign}00$absN";
-    return "${sign}000$absN";
+    final absN = n.abs();
+    final sign = n < 0 ? '-' : '';
+    if (absN >= 1000) return '$n';
+    if (absN >= 100) return '${sign}0$absN';
+    if (absN >= 10) return '${sign}00$absN';
+    return '${sign}000$absN';
   }
 
   static String _threeDigits(int n) {
-    if (n >= 100) return "$n";
-    if (n >= 10) return "0$n";
-    return "00$n";
+    if (n >= 100) return '$n';
+    if (n >= 10) return '0$n';
+    return '00$n';
   }
 
   static String _twoDigits(int n) {
-    if (n >= 10) return "$n";
-    return "0$n";
+    if (n >= 10) return '$n';
+    return '0$n';
   }
 
   /// Returns a human-readable string for this instance.
@@ -380,44 +422,44 @@ class TZDateTime implements DateTime {
   String toIso8601String() => _toString(iso8601: true);
 
   String _toString({bool iso8601 = true}) {
-    var offset = timeZone.offset;
+    final offset = timeZone.offset;
 
-    var y = _fourDigits(year);
-    var m = _twoDigits(month);
-    var d = _twoDigits(day);
-    var sep = iso8601 ? "T" : " ";
-    var h = _twoDigits(hour);
-    var min = _twoDigits(minute);
-    var sec = _twoDigits(second);
-    var ms = _threeDigits(millisecond);
-    var us = microsecond == 0 ? "" : _threeDigits(microsecond);
+    final y = _fourDigits(year);
+    final m = _twoDigits(month);
+    final d = _twoDigits(day);
+    final sep = iso8601 ? 'T' : ' ';
+    final h = _twoDigits(hour);
+    final min = _twoDigits(minute);
+    final sec = _twoDigits(second);
+    final ms = _threeDigits(millisecond);
+    final us = microsecond == 0 ? '' : _threeDigits(microsecond);
 
     if (isUtc) {
-      return "$y-$m-$d$sep$h:$min:$sec.$ms${us}Z";
+      return '$y-$m-$d$sep$h:$min:$sec.$ms${us}Z';
     } else {
-      var offSign = offset.sign >= 0 ? '+' : '-';
-      offset = offset.abs() ~/ 1000;
-      var offH = _twoDigits(offset ~/ 3600);
-      var offM = _twoDigits((offset % 3600) ~/ 60);
+      final offSign = offset.isNegative ? '-' : '+';
+      final offsetSeconds = offset.abs().inSeconds;
+      final offH = _twoDigits(offsetSeconds ~/ 3600);
+      final offM = _twoDigits((offsetSeconds % 3600) ~/ 60);
 
-      return "$y-$m-$d$sep$h:$min:$sec.$ms$us$offSign$offH$offM";
+      return '$y-$m-$d$sep$h:$min:$sec.$ms$us$offSign$offH$offM';
     }
   }
 
-  /// Returns a new [TZDateTime] instance with [duration] added to [this].
+  /// Returns a new [TZDateTime] instance with [duration] added to `this`.
   @override
   TZDateTime add(Duration duration) =>
-      TZDateTime.from(_native.add(duration), location);
+      TZDateTime.from(native.add(duration), location);
 
   /// Returns a new [TZDateTime] instance with [duration] subtracted from
-  /// [this].
+  /// `this`.
   @override
   TZDateTime subtract(Duration duration) =>
-      TZDateTime.from(_native.subtract(duration), location);
+      TZDateTime.from(native.subtract(duration), location);
 
-  /// Returns a [Duration] with the difference between [this] and [other].
+  /// Returns a [Duration] with the difference between `this` and [other].
   @override
-  Duration difference(DateTime other) => _native.difference(_toNative(other));
+  Duration difference(DateTime other) => native.difference(_toNative(other));
 
   /// Returns true if [other] is a [TZDateTime] at the same moment and in the
   /// same [Location].
@@ -435,11 +477,11 @@ class TZDateTime implements DateTime {
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is TZDateTime &&
-            _native.isAtSameMomentAs(other._native) &&
+            native.isAtSameMomentAs(other.native) &&
             location == other.location;
   }
 
-  /// Returns true if [this] occurs before [other].
+  /// Returns true if `this` occurs before [other].
   ///
   /// The comparison is independent of whether the time is in UTC or in other
   /// time zone.
@@ -451,9 +493,9 @@ class TZDateTime implements DateTime {
   /// assert(berlinWallFell.isBefore(moonLanding) == false);
   /// ```
   @override
-  bool isBefore(DateTime other) => _native.isBefore(_toNative(other));
+  bool isBefore(DateTime other) => native.isBefore(_toNative(other));
 
-  /// Returns true if [this] occurs after [other].
+  /// Returns true if `this` occurs after [other].
   ///
   /// The comparison is independent of whether the time is in UTC or in other
   /// time zone.
@@ -465,9 +507,9 @@ class TZDateTime implements DateTime {
   /// assert(berlinWallFell.isAfter(moonLanding) == true);
   /// ```
   @override
-  bool isAfter(DateTime other) => _native.isAfter(_toNative(other));
+  bool isAfter(DateTime other) => native.isAfter(_toNative(other));
 
-  /// Returns true if [this] occurs at the same moment as [other].
+  /// Returns true if `this` occurs at the same moment as [other].
   ///
   /// The comparison is independent of whether the time is in UTC or in other
   /// time zone.
@@ -480,7 +522,7 @@ class TZDateTime implements DateTime {
   /// ```
   @override
   bool isAtSameMomentAs(DateTime other) =>
-      _native.isAtSameMomentAs(_toNative(other));
+      native.isAtSameMomentAs(_toNative(other));
 
   /// Compares this [TZDateTime] object to [other],
   /// returning zero if the values occur at the same moment.
@@ -489,10 +531,10 @@ class TZDateTime implements DateTime {
   /// if this [TZDateTime] is smaller (earlier) than [other],
   /// or a positive integer if it is greater (later).
   @override
-  int compareTo(DateTime other) => _native.compareTo(_toNative(other));
+  int compareTo(DateTime other) => native.compareTo(_toNative(other));
 
   @override
-  int get hashCode => _native.hashCode;
+  int get hashCode => native.hashCode;
 
   /// The abbreviated time zone name&mdash;for example,
   /// [:"CET":] or [:"CEST":].
@@ -508,10 +550,7 @@ class TZDateTime implements DateTime {
   /// local time. Java, C# and Ruby return the difference between local time and
   /// UTC.
   @override
-  Duration get timeZoneOffset => _timeZoneOffset(timeZone);
-
-  static Duration _timeZoneOffset(TimeZone timeZone) =>
-      Duration(milliseconds: timeZone.offset);
+  Duration get timeZoneOffset => timeZone.offset;
 
   /// The year.
   @override
