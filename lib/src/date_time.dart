@@ -69,7 +69,8 @@ class TZDateTime implements DateTime {
         .inMilliseconds;
     final locationOffset = location
         .timeZone(other.millisecondsSinceEpoch) //
-        .offset;
+        .offset
+        .inMilliseconds;
     return nativeTime //
         .add(Duration(milliseconds: originalOffset - locationOffset))
         .toUtc();
